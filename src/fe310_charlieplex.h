@@ -7,6 +7,27 @@
 //
 //                                 @@@ TLDR; OPEN SOVRCE BLINKEN LIGHTS @@@
 
+
+// *** START NOTES ***
+// Mapping Out CharliePlex [ROW NUM | COL NUM | LED BITS | LED LOC ]
+//data_buf[0] = 0xFE;  // ROW 0-6 COL 14 [Right to Left] (BIT 1:7) CA1
+//data_buf[1] = 0xFF;  // NC CB1
+//data_buf[2] = 0xFE;  // R0-6 C13 (1:7) CA2
+//data_buf[3] = 0x7F;  // R6-0 C0 (0:6) CB2
+//data_buf[4] = 0xFE;  // R0-6 C12 (1:7) CA3
+//data_buf[5] = 0x7F;  // R0-6 C1 (0:6) CB3
+//data_buf[6] = 0xFE;  // R0-6 C11 (1:7) CA4
+//data_buf[7] = 0x70;  // R6-0 C2 (0:6) CB4
+//data_buf[8] = 0xFE;  // R0-6 C10 (1:7) CA5
+//data_buf[9] = 0x7F;  // R6-0 C3 (0:6) CB5
+//data_buf[10] = 0xFE; // R0-6 C9 (1:7) CA6
+//data_buf[11] = 0x7F; // R6-0 C4 (0:6) CB6
+//data_buf[12] = 0xFE; // R0-6 C8 (1:7) CA7
+//data_buf[13] = 0x7F; // R6-0 C5 (0:6) CB7
+//data_buf[14] = 0xFE; // R0-6 C7 (1:7) CA8
+//data_buf[15] = 0x7F; // R6-0 C6 (0:6) CB8
+// *** END NOTES ***
+
 #ifndef RISCV_CHARLIEWING_FE310_CHARLIEPLEX_H
 #define RISCV_CHARLIEWING_FE310_CHARLIEPLEX_H
 
@@ -23,6 +44,7 @@
 #define LED_Y_MIN 0
 
 #define ROTATE(led_data) (led_data << 1)
+#define ROTATE_REVERSE(led_data) (led_data >> 1)
 #define REG_LEN(reg_addr_end, reg_addr_start) (reg_addr_end - reg_addr_start)  // Calculate Length in Bytes of Register
 
 // #############################

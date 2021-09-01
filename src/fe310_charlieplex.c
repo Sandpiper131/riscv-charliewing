@@ -25,6 +25,8 @@ static const unsigned char BitReverseTable256[] =
                 0x0F, 0x8F, 0x4F, 0xCF, 0x2F, 0xAF, 0x6F, 0xEF, 0x1F, 0x9F, 0x5F, 0xDF, 0x3F, 0xBF, 0x7F, 0xFF
         };
 
+static const unsigned int LEDColToMatrixIndex[] = {2, 4, 6, 8, 10, 12, 14, 13, 11, 9, 7, 5, 3, 1, 0};
+
 extern void charlieplex_register_write_byte(struct metal_i2c *i2c, unsigned char reg_addr, unsigned char reg_data){
     unsigned char buf[REG_WR_MIN_LEN] = {reg_addr, reg_data};
     metal_i2c_write(i2c, CHARLIEPLEX_I2C_ADDR, REG_WR_MIN_LEN, buf, METAL_I2C_STOP_ENABLE);
@@ -72,6 +74,15 @@ extern void charlieplex_write_pixel(unsigned int x, unsigned int y, unsigned cha
 void write_charlieplex_led_data(struct metal_i2c *i2c, unsigned char page_num, unsigned char *raw_data){
     unsigned char form_data[LED_CTRL_REG_LEN];
 
+    unsigned char temp[LED_X_MAX];
+    for(int u = 0; u < LED_X_MAX; u++){
+        temp[u] = raw_data[u];
+    }
+
+    for(int y = 0; y < LED_X_MAX; y++){
+        raw_data[LEDColToMatrixIndex[y]] = temp[y];
+    }
+
     unsigned char reversed_index[] = {3, 7, 9, 11, 13, 15};  // Index of Reversed LED Registers
     unsigned int reversed_len = 6;
 
@@ -83,10 +94,10 @@ void write_charlieplex_led_data(struct metal_i2c *i2c, unsigned char page_num, u
             // Only Increment Raw Index when writing to formatted data array
             if(i != 1){
                 for(int x = 0; x < reversed_len; x++){
-                    if(i == reversed_index[x]) raw_data[raw_index] = BitReverseTable256[raw_data[raw_index]];  // If Reg Reversed, reverse led data
+                    if(i == reversed_index[x]) raw_data[raw_index] = ROTATE_REVERSE(BitReverseTable256[raw_data[raw_index]]);  // If Reg Reversed, reverse led data
                 }
 
-                if(i != 0 && (i % 2) == 0) raw_data[raw_index] = ROTATE(raw_data[raw_index]);  // If Reg is rotated in hardware, rotate led data
+                if((i % 2) == 0) raw_data[raw_index] = ROTATE(raw_data[raw_index]);  // If Reg is rotated in hardware, rotate led data
                 form_data[i] = raw_data[raw_index];
                 raw_index++;
             }
