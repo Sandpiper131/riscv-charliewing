@@ -16,7 +16,7 @@
 
 #define CHARLIEPLEX_I2C_ADDR 0x74
 
-#define LED_X_MAX 14
+#define LED_X_MAX 15
 #define LED_X_MIN 0
 
 #define LED_Y_MAX 7
@@ -84,5 +84,6 @@ extern void charlieplex_set_cmd_reg(struct metal_i2c *i2c, unsigned char page_nu
 extern struct metal_i2c *charlieplex_init(unsigned int baud);
 extern void charlieplex_register_write_multibyte_data(struct metal_i2c *i2c, unsigned char page_num, unsigned char response_reg, unsigned char *data, unsigned int data_len);
 extern void charlieplex_write_pixel(unsigned int x, unsigned int y, unsigned char duty_cycle);
+extern void write_charlieplex_led_data(struct metal_i2c *i2c, unsigned char page_num, unsigned char *raw_data);
 
 #endif //RISCV_CHARLIEWING_FE310_CHARLIEPLEX_H

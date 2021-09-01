@@ -47,3 +47,23 @@ extern void charlieplex_register_write_multibyte_data(struct metal_i2c *i2c, uns
 extern void charlieplex_write_pixel(unsigned int x, unsigned int y, unsigned char duty_cycle){
     //unsigned int reversed[6] = {0x00, }
 }
+
+
+void write_charlieplex_led_data(struct metal_i2c *i2c, unsigned char page_num, unsigned char *raw_data){
+    unsigned char form_data[LED_CTRL_REG_LEN];
+
+    // Format Data using Raw Data (ie. 15 Byte unsigned char array)
+    unsigned int raw_index = 0;  // Index of Raw Data Pointer
+    for(int i = 0; i < LED_CTRL_REG_LEN; i++){
+        form_data[i] = 0x00;
+        if(raw_index < LED_X_MAX){
+            // Only Increment Raw Index when writing to formatted data array
+            if(i != 1){
+                form_data[i] = raw_data[raw_index];
+                raw_index++;
+            }
+        }
+
+        charlieplex_register_write_multibyte_data(i2c, page_num, LED_CTRL_REG_START, form_data, LED_CTRL_REG_LEN);
+    }
+}
