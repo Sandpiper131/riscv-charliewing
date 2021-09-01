@@ -22,6 +22,7 @@
 #define LED_Y_MAX 7
 #define LED_Y_MIN 0
 
+#define ROTATE(led_data) (led_data << 1)
 #define REG_LEN(reg_addr_end, reg_addr_start) (reg_addr_end - reg_addr_start)  // Calculate Length in Bytes of Register
 
 // #############################
