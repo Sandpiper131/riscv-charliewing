@@ -27,14 +27,16 @@ static const unsigned char BitReverseTable256[] =
 
 static const unsigned int LEDColToMatrixIndex[] = {2, 4, 6, 8, 10, 12, 14, 13, 11, 9, 7, 5, 3, 1, 0};
 
+static const unsigned char LEDtoREG[] = {0x03, 0x05, 0x07, 0x09, 0x0A, 0x0D, 0x0F, 0x0E, 0x0C, 0x0A, 0x08, 0x06, 0x04, 0x02, 0x00};
+
 extern void charlieplex_register_write_byte(struct metal_i2c *i2c, unsigned char reg_addr, unsigned char reg_data){
     unsigned char buf[REG_WR_MIN_LEN] = {reg_addr, reg_data};
     metal_i2c_write(i2c, CHARLIEPLEX_I2C_ADDR, REG_WR_MIN_LEN, buf, METAL_I2C_STOP_ENABLE);
 }
 
 // Description: Set Command Register Data
-extern void charlieplex_set_cmd_reg(struct metal_i2c *i2c, unsigned char page_num){
-    charlieplex_register_write_byte(i2c, CMD_REG, page_num);
+extern void charlieplex_set_page(struct metal_i2c *i2c, unsigned char page_num){
+    charlieplex_register_write_byte(i2c, CMD_REG, page_num);  // Set Command Register to Desired Page
 }
 
 
@@ -46,8 +48,10 @@ extern struct metal_i2c *charlieplex_init(unsigned int baud){
     metal_i2c_init(i2c, baud, METAL_I2C_MASTER);
 
     // Set Shutdown Mode: Normal
-    charlieplex_set_cmd_reg(i2c, 0x0B);
+    charlieplex_set_page(i2c, 0x0B);
     charlieplex_register_write_byte(i2c, SHUTDOWN_REG, NORMAL_OPERATION);
+
+    charlieplex_reset_fade(i2c);
 
     return i2c;
 }
@@ -62,7 +66,7 @@ extern void charlieplex_register_write_multibyte_data(struct metal_i2c *i2c, uns
         buf[i + 1] = data[i];  // Write data to buffer without overwriting register addresses
     }
 
-    charlieplex_set_cmd_reg(i2c, page_num);  // Select Proper Page
+    charlieplex_set_page(i2c, page_num);  // Select Proper Page
     metal_i2c_write(i2c, CHARLIEPLEX_I2C_ADDR, (data_len + 1), buf, METAL_I2C_STOP_ENABLE);
 }
 
@@ -71,20 +75,29 @@ extern void charlieplex_write_pixel(unsigned int x, unsigned int y, unsigned cha
 }
 
 
-void write_charlieplex_led_data(struct metal_i2c *i2c, unsigned char page_num, unsigned char *raw_data){
+// BAD IMPLEMENTATION BELOW
+extern void write_charlieplex_led_data(struct metal_i2c *i2c, unsigned char page_num, unsigned char *raw_data){
     unsigned char form_data[LED_CTRL_REG_LEN];
 
+    // Copy Raw LED data to temporary array
     unsigned char temp[LED_X_MAX];
     for(int u = 0; u < LED_X_MAX; u++){
         temp[u] = raw_data[u];
     }
 
+    unsigned char reversed_index[] = {2, 6, 8, 10, 12, 14};
+    unsigned int reversed_len = 6;
+    for(int f = 0; f < reversed_len; f++){
+        temp[reversed_index[f]] = ROTATE_REVERSE(temp[f]);
+    }
+
+    // Map the raw data to the hardware
     for(int y = 0; y < LED_X_MAX; y++){
         raw_data[LEDColToMatrixIndex[y]] = temp[y];
     }
 
-    unsigned char reversed_index[] = {3, 7, 9, 11, 13, 15};  // Index of Reversed LED Registers
-    unsigned int reversed_len = 6;
+    //unsigned char reversed_index[] = {3, 7, 9, 11, 13, 15};  // Index of Reversed LED Registers
+
 
     // Format Data using Raw Data (ie. 15 Byte unsigned char array)
     unsigned int raw_index = 0;  // Index of Raw Data Pointer
@@ -93,11 +106,11 @@ void write_charlieplex_led_data(struct metal_i2c *i2c, unsigned char page_num, u
         if(raw_index < LED_X_MAX){
             // Only Increment Raw Index when writing to formatted data array
             if(i != 1){
-                for(int x = 0; x < reversed_len; x++){
+                /*for(int x = 0; x < reversed_len; x++){
                     if(i == reversed_index[x]) raw_data[raw_index] = ROTATE_REVERSE(BitReverseTable256[raw_data[raw_index]]);  // If Reg Reversed, reverse led data
-                }
+                }*/
 
-                if((i % 2) == 0) raw_data[raw_index] = ROTATE(raw_data[raw_index]);  // If Reg is rotated in hardware, rotate led data
+                //if((i % 2) == 0) raw_data[raw_index] = ROTATE(raw_data[raw_index]);  // If Reg is rotated in hardware, rotate led data
                 form_data[i] = raw_data[raw_index];
                 raw_index++;
             }
@@ -105,4 +118,26 @@ void write_charlieplex_led_data(struct metal_i2c *i2c, unsigned char page_num, u
 
         charlieplex_register_write_multibyte_data(i2c, page_num, LED_CTRL_REG_START, form_data, LED_CTRL_REG_LEN);
     }
+}
+
+extern void charlieplex_set_fade(struct metal_i2c *i2c, unsigned char fade_out_time, unsigned char fade_in_time, unsigned char extinguish_time){
+    charlieplex_set_page(i2c, 0x0B);  // Set Page to Function Register
+
+    unsigned char bc1_reg_data = (fade_in_time | (fade_out_time << 4));
+    charlieplex_register_write_byte(i2c, BC1_REG, bc1_reg_data);
+
+
+    unsigned char bc2_reg_data = (extinguish_time | (1 << 4));
+    charlieplex_register_write_byte(i2c, BC2_REG, bc2_reg_data);
+}
+
+extern void charlieplex_reset_fade(struct metal_i2c *i2c){
+    charlieplex_set_page(i2c, 0x0B);
+    charlieplex_register_write_byte(i2c, BC1_REG, 0x00);
+    charlieplex_register_write_byte(i2c, BC2_REG, 0x00);
+}
+
+// Hopefully a better implementation than write_charlieplex_led_data(...)
+extern void charlieplex_write_led_page(struct metal_i2c *i2c, unsigned char page_num, unsigned char *raw_data){
+    // TODO: Use new LUT to map 15 Bytes of LED Data to the 15 Respective Registers in Charlieplex LED Driver IC
 }

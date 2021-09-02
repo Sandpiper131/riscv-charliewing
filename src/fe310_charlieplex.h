@@ -85,6 +85,8 @@
 #define AP_CTRL_REG2 0x03  // Auto Play Control Register 2
 #define DISP_OPT_REG 0x05  // Display Option Register
 #define AUDIO_SYNC_REG     // Audio Synchronization Register
+#define BC1_REG 0x08
+#define BC2_REG 0x09
 
 
 // Shutdown Register
@@ -103,10 +105,12 @@
 
 // Define FE310 Charlieplex Functions
 extern void charlieplex_register_write_byte(struct metal_i2c *i2c, unsigned char reg_addr, unsigned char reg_data);
-extern void charlieplex_set_cmd_reg(struct metal_i2c *i2c, unsigned char page_num);
+extern void charlieplex_set_page(struct metal_i2c *i2c, unsigned char page_num);
 extern struct metal_i2c *charlieplex_init(unsigned int baud);
 extern void charlieplex_register_write_multibyte_data(struct metal_i2c *i2c, unsigned char page_num, unsigned char response_reg, unsigned char *data, unsigned int data_len);
 extern void charlieplex_write_pixel(unsigned int x, unsigned int y, unsigned char duty_cycle);
 extern void write_charlieplex_led_data(struct metal_i2c *i2c, unsigned char page_num, unsigned char *raw_data);
+extern void charlieplex_set_fade(struct metal_i2c *i2c,  unsigned char fade_out_time, unsigned char fade_in_time, unsigned char extinguish_time);
+extern void charlieplex_reset_fade(struct metal_i2c *i2c);
 
 #endif //RISCV_CHARLIEWING_FE310_CHARLIEPLEX_H
